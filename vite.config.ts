@@ -3,11 +3,10 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
-// https://vite.dev/config/
 export default defineConfig({
   base: '/',
   plugins: [react(), tailwindcss()],
-    server: {
+  server: {
     host: '10.90.25.125',
     port: 3002,
     proxy: {
@@ -17,9 +16,34 @@ export default defineConfig({
       },
     },
   },
-    resolve: {
+  resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
     },
   },
+  build: {
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        assetFileNames: (assetInfo) => {
+          const name = assetInfo.name || ''
+          const extType = name.split('.').pop()
+          
+          if (/woff2?|ttf|eot|otf/i.test(extType || '')) {
+            return `static/fonts_source/[name]-[hash][extname]`
+          }
+          
+          if (extType === 'css') {
+            return `static/css/pages/[name]-[hash][extname]`
+          }
+          
+          return `assets/[name]-[hash][extname]`
+        },
+        entryFileNames: `static/js/pages/[name]-[hash].js`,
+        chunkFileNames: `static/js/pages/[name]-[hash].js`,
+      },
+    },
+    copyPublicDir: true,
+  },
+  publicDir: 'public',
 })

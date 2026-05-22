@@ -15,28 +15,33 @@ const ScoutingRiskChart: React.FC<Props> = ({ templates }) => {
       total: number
     }> = {}
 
+    // ✅ Новая структура: template → measurements → crops → farms → fields → reports
     templates.forEach(template => {
-      template.crops.forEach(crop => {
-        crop.measurements.forEach(measurement => {
-          measurement.reports.forEach(report => {
-            const date = new Date(report.report_date)
-              .toISOString()
-              .split("T")[0]
+      template.measurements?.forEach(measurement => {
+        measurement.crops?.forEach(crop => {
+          crop.farms?.forEach(farm => {        // ✅ добавляем farms
+            farm.fields?.forEach(field => {    // ✅ fields внутри farms
+              field.reports?.forEach(report => {
+                const date = new Date(report.report_date)
+                  .toISOString()
+                  .split("T")[0]
 
-            if (!map[date]) {
-              map[date] = {
-                green: 0,
-                orange: 0,
-                red: 0,
-                total: 0
-              }
-            }
+                if (!map[date]) {
+                  map[date] = {
+                    green: 0,
+                    orange: 0,
+                    red: 0,
+                    total: 0
+                  }
+                }
 
-            if (report.zone === "green") map[date].green++
-            else if (report.zone === "orange") map[date].orange++
-            else if (report.zone === "red") map[date].red++
+                if (report.zone === "green") map[date].green++
+                else if (report.zone === "orange") map[date].orange++
+                else if (report.zone === "red") map[date].red++
 
-            map[date].total++
+                map[date].total++
+              })
+            })
           })
         })
       })

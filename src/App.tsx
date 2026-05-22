@@ -63,7 +63,7 @@ function App() {
   const [existingRules, setExistingRules] = useState<IndicatorThreshold[]>([])
   
   const [isSaving, setIsSaving] = useState(false)
-  const [isStaticDataLoading, setIsStaticDataLoading] = useState(true) // Переименовал
+  const [isStaticDataLoading, setIsStaticDataLoading] = useState(true)
   const [currentView, setCurrentView] = useState<'table' | 'zones' | 'groups'>('table');
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -71,13 +71,19 @@ function App() {
   const urlSeason = Number(searchParams.get("season")) || currentYear;
   const [season, setSeason] = useState(urlSeason);
 
+  // Состояния для таблицы шаблонов (новая структура с хозяйствами)
   const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set())
-  const [expandedCrops, setExpandedCrops] = useState<Set<number>>(new Set())
   const [expandedMeasurements, setExpandedMeasurements] = useState<Set<number>>(new Set())
+  const [expandedCrops, setExpandedCrops] = useState<Set<number>>(new Set())
   const [expandedFarms, setExpandedFarms] = useState<Set<string>>(new Set())
   const [expandedFields, setExpandedFields] = useState<Set<number>>(new Set())
-  const [expandedFarmCrops, setExpandedFarmCrops] = useState<Set<number>>(new Set())
+  
+  // Состояния для таблицы хозяйств (новая иерархия: Farm → TemplateGroup → Measurement → Crop → Field)
+  const [expandedFarmsFarm, setExpandedFarmsFarm] = useState<Set<string>>(new Set())
+  const [expandedFarmTemplateGroups, setExpandedFarmTemplateGroups] = useState<Set<number>>(new Set())  // ✅ новое состояние для групп
   const [expandedFarmMeasurements, setExpandedFarmMeasurements] = useState<Set<number>>(new Set())
+  const [expandedFarmCrops, setExpandedFarmCrops] = useState<Set<number>>(new Set())
+  const [expandedFarmFields, setExpandedFarmFields] = useState<Set<number>>(new Set())
 
   const [scoutingActiveTab, setScoutingActiveTab] = useState<TabType>("farms")
 
@@ -128,9 +134,10 @@ function App() {
       groupsThresholdsData,
       templateGroups,
       cropGroups,
-      templateGroupCropGroups
+      templateGroupCropGroups,
+      templateGroupNames  // ✅ передаем templateGroupNames для названий групп
     );
-  }, [reportsData, groupsThresholdsData, templateGroups, cropGroups, templateGroupCropGroups]);
+  }, [reportsData, groupsThresholdsData, templateGroups, cropGroups, templateGroupCropGroups, templateGroupNames]);
 
   // Обновляем диапазон при смене сезона
   useEffect(() => {
@@ -200,12 +207,12 @@ function App() {
     return () => {
       isMounted = false;
     };
-  }, []); // Пустой массив - загружаем один раз
+  }, []);
 
   // Показываем лоадер, пока грузятся И статические данные, И reports
   const isLoading = isStaticDataLoading || isReportsLoading;
 
-  // Обработчики для таблицы шаблонов
+  // Обработчики для таблицы шаблонов (новая структура с хозяйствами)
   const handleToggleGroup = useCallback((id: number) => {
     setExpandedGroups(prev => {
       const next = new Set(prev)
@@ -214,16 +221,16 @@ function App() {
     })
   }, [])
 
-  const handleToggleCrop = useCallback((id: number) => {
-    setExpandedCrops(prev => {
+  const handleToggleMeasurement = useCallback((id: number) => {
+    setExpandedMeasurements(prev => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
   }, [])
 
-  const handleToggleMeasurement = useCallback((id: number) => {
-    setExpandedMeasurements(prev => {
+  const handleToggleCrop = useCallback((id: number) => {
+    setExpandedCrops(prev => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
       return next
@@ -246,8 +253,17 @@ function App() {
     })
   }, [])
 
-  const handleToggleFarmCrop = useCallback((id: number) => {
-    setExpandedFarmCrops(prev => {
+  // Обработчики для таблицы хозяйств (новая иерархия)
+  const handleToggleFarmFarm = useCallback((id: string) => {
+    setExpandedFarmsFarm(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }, [])
+
+  const handleToggleFarmTemplateGroup = useCallback((id: number) => {
+    setExpandedFarmTemplateGroups(prev => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
       return next
@@ -256,6 +272,22 @@ function App() {
 
   const handleToggleFarmMeasurement = useCallback((id: number) => {
     setExpandedFarmMeasurements(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }, [])
+
+  const handleToggleFarmCrop = useCallback((id: number) => {
+    setExpandedFarmCrops(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }, [])
+
+  const handleToggleFarmField = useCallback((id: number) => {
+    setExpandedFarmFields(prev => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
       return next
@@ -483,20 +515,28 @@ function App() {
             season={season}
             dateRange={dateRange}
             onDateRangeChange={(start, end) => setDateRange({ start, end })}
+            // Состояния для таблицы шаблонов (с хозяйствами)
             expandedGroups={expandedGroups}
-            expandedCrops={expandedCrops}
             expandedMeasurements={expandedMeasurements}
-            onToggleGroup={handleToggleGroup}
-            onToggleCrop={handleToggleCrop}
-            onToggleMeasurement={handleToggleMeasurement}
+            expandedCrops={expandedCrops}
             expandedFarms={expandedFarms}
             expandedFields={expandedFields}
-            expandedFarmCrops={expandedFarmCrops}
-            expandedFarmMeasurements={expandedFarmMeasurements}
+            onToggleGroup={handleToggleGroup}
+            onToggleMeasurement={handleToggleMeasurement}
+            onToggleCrop={handleToggleCrop}
             onToggleFarm={handleToggleFarm}
             onToggleField={handleToggleField}
-            onToggleFarmCrop={handleToggleFarmCrop}
+            // Состояния для таблицы хозяйств (новая иерархия)
+            expandedFarmsFarm={expandedFarmsFarm}
+            expandedFarmTemplateGroups={expandedFarmTemplateGroups}
+            expandedFarmMeasurements={expandedFarmMeasurements}
+            expandedFarmCrops={expandedFarmCrops}
+            expandedFarmFields={expandedFarmFields}
+            onToggleFarmFarm={handleToggleFarmFarm}
+            onToggleFarmTemplateGroup={handleToggleFarmTemplateGroup}
             onToggleFarmMeasurement={handleToggleFarmMeasurement}
+            onToggleFarmCrop={handleToggleFarmCrop}
+            onToggleFarmField={handleToggleFarmField}
             activeTab={scoutingActiveTab}
             onActiveTabChange={setScoutingActiveTab}
           />
@@ -533,6 +573,7 @@ function App() {
           <GroupsManager
             templates={reportTemplates}
             crops={crops}
+            templateGroupCropGroups={templateGroupCropGroups} 
             templateGroupNames={templateGroupNames}
             templateGroups={templateGroups}
             cropGroupNames={cropGroupNames}

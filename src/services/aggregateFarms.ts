@@ -1,18 +1,18 @@
 import type { ScoutReportItem, IndicatorsResponse } from "../types/scoutingReport"
 import type { FarmData } from "../types/scoutingFarmAggregated"
-import type { TemplateGroup, CropGroup, TemplateGroupCropGroup } from "../types/groups"
+import type { TemplateGroup, CropGroup, TemplateGroupCropGroup, TemplateGroupName } from "../types/groups"
 
 export function aggregateFarms(
   reports: ScoutReportItem[],
   indicators: IndicatorsResponse,
   templateGroups: TemplateGroup[],
   cropGroups: CropGroup[],
-  templateGroupCropGroups: TemplateGroupCropGroup[]
+  templateGroupCropGroups: TemplateGroupCropGroup[],
+  templateGroupNames: TemplateGroupName[]
 ): FarmData[] {
   
   const farmsMap = new Map<string, FarmData>()
 
-  // ✅ Функция для безопасного получения числового значения
   const getNumericValue = (value: any): number | null => {
     if (value === null || value === undefined) return null
     
@@ -34,7 +34,7 @@ export function aggregateFarms(
     return Number(value.toFixed(2))
   }
 
-  // ✅ Маппинг: template -> [groups]
+  // Маппинг: template -> [groups]
   const templateToGroupsMap = new Map<number, number[]>()
   templateGroups.forEach(tg => {
     const arr = templateToGroupsMap.get(tg.scout_report_template_id) || []
@@ -42,7 +42,7 @@ export function aggregateFarms(
     templateToGroupsMap.set(tg.scout_report_template_id, arr)
   })
 
-  // ✅ Маппинг: crop -> [groups]
+  // Маппинг: crop -> [groups]
   const cropToGroupsMap = new Map<number, number[]>()
   cropGroups.forEach(cg => {
     const arr = cropToGroupsMap.get(cg.crop_id) || []
@@ -65,11 +65,10 @@ export function aggregateFarms(
     const fieldName = report.field_name
     const fieldGroupName = report.field_group_name || null
 
-    // Определяем имя хозяйства (берем группу полей или создаем на основе поля)
     const farmId = fieldGroupName || `field_${fieldId}`
     const farmName = fieldGroupName || fieldName
 
-    // ✅ Получаем ВСЕ группы
+    // Получаем группы для шаблона и культуры
     const templateGroupIds = templateToGroupsMap.get(templateId) || []
     const cropGroupIds = cropToGroupsMap.get(cropId) || []
 
@@ -77,7 +76,9 @@ export function aggregateFarms(
       return
     }
 
-    // ✅ Ищем подходящую пару групп
+    // Ищем подходящую пару групп
+    let matchedTemplateGroupId: number | null = null
+    // let matchedCropGroupId: number | null = null
     let cropGroupData: any = null
 
     for (const tgId of templateGroupIds) {
@@ -90,6 +91,8 @@ export function aggregateFarms(
         const data = templateGroupData?.[cgId.toString()]
 
         if (data) {
+          matchedTemplateGroupId = tgId
+          // matchedCropGroupId = cgId
           cropGroupData = data
           break
         }
@@ -97,9 +100,14 @@ export function aggregateFarms(
       if (cropGroupData) break
     }
 
-    if (!cropGroupData) {
+    if (!cropGroupData || !matchedTemplateGroupId) {
       return
     }
+
+    // Получаем название группы шаблонов
+    const templateGroupName = templateGroupNames.find(
+      (g: TemplateGroupName) => g.id === matchedTemplateGroupId
+    )?.template_group_name || `Группа ${matchedTemplateGroupId}`
 
     // Инициализируем хозяйство
     if (!farmsMap.has(farmId)) {
@@ -107,41 +115,29 @@ export function aggregateFarms(
         farm_id: farmId,
         farm_name: farmName,
         stats: { green: 0, orange: 0, red: 0, total: 0 },
-        fields: []
+        templateGroups: []
       })
     }
 
     const farm = farmsMap.get(farmId)!
 
-    // Находим или создаем поле
-    let field = farm.fields.find(f => f.field_id === fieldId)
-    if (!field) {
-      field = {
-        field_id: fieldId,
-        field_name: fieldName,
-        field_group_name: fieldGroupName,
-        stats: { green: 0, orange: 0, red: 0, total: 0 },
-        crops: []
-      }
-      farm.fields.push(field)
-    }
-
-    // Находим или создаем культуру в поле
-    let crop = field.crops.find(c => c.crop_id === cropId)
-    if (!crop) {
-      crop = {
-        crop_id: cropId,
-        crop_name: cropName,
+    // Находим или создаем группу шаблонов в хозяйстве
+    let templateGroup = farm.templateGroups.find(
+      tg => tg.template_group_id === matchedTemplateGroupId
+    )
+    if (!templateGroup) {
+      templateGroup = {
+        template_group_id: matchedTemplateGroupId,
+        template_group_name: templateGroupName,
         stats: { green: 0, orange: 0, red: 0, total: 0 },
         measurements: []
       }
-      field.crops.push(crop)
+      farm.templateGroups.push(templateGroup)
     }
 
     // Обрабатываем измерения
     Object.values(report.scout_report_point).forEach(measurements => {
       measurements.forEach(measurement => {
-        // ✅ Получаем числовое значение измерения
         const numericValue = getNumericValue(measurement.measurement_value)
         
         if (numericValue === null) {
@@ -153,10 +149,8 @@ export function aggregateFarms(
 
         if (!zones || zones.length === 0) return
 
-        // ✅ Округляем значение
         const roundedValue = roundValue(numericValue)
 
-        // Определяем зону
         let currentZone: 'green' | 'orange' | 'red' = zones[0].zone
         for (let i = zones.length - 1; i >= 0; i--) {
           if (roundedValue >= zones[i].threshold_value) {
@@ -168,13 +162,11 @@ export function aggregateFarms(
         // Обновляем статистику
         farm.stats[currentZone]++
         farm.stats.total++
-        field.stats[currentZone]++
-        field.stats.total++
-        crop.stats[currentZone]++
-        crop.stats.total++
+        templateGroup.stats[currentZone]++
+        templateGroup.stats.total++
 
-        // Находим или создаем измерение
-        let measurementType = crop.measurements.find(
+        // Находим или создаем измерение в группе шаблонов
+        let measurementType = templateGroup.measurements.find(
           m => m.measurement_type_id === measurementTypeId
         )
 
@@ -183,16 +175,49 @@ export function aggregateFarms(
             measurement_type_id: measurementTypeId,
             human_name: measurement.human_name,
             stats: { green: 0, orange: 0, red: 0, total: 0 },
-            reports: []
+            crops: []
           }
-          crop.measurements.push(measurementType)
+          templateGroup.measurements.push(measurementType)
         }
 
         measurementType.stats[currentZone]++
         measurementType.stats.total++
 
+        // Находим или создаем культуру в измерении
+        let crop = measurementType.crops.find(c => c.crop_id === cropId)
+
+        if (!crop) {
+          crop = {
+            crop_id: cropId,
+            crop_name: cropName,
+            stats: { green: 0, orange: 0, red: 0, total: 0 },
+            fields: []
+          }
+          measurementType.crops.push(crop)
+        }
+
+        crop.stats[currentZone]++
+        crop.stats.total++
+
+        // Находим или создаем поле в культуре
+        let field = crop.fields.find(f => f.field_id === fieldId)
+
+        if (!field) {
+          field = {
+            field_id: fieldId,
+            field_name: fieldName,
+            field_group_name: fieldGroupName,
+            stats: { green: 0, orange: 0, red: 0, total: 0 },
+            reports: []
+          }
+          crop.fields.push(field)
+        }
+
+        field.stats[currentZone]++
+        field.stats.total++
+
         // Добавляем отчет
-        measurementType.reports.push({
+        field.reports.push({
           field_id: fieldId,
           field_name: fieldName,
           scout_report_id: report.scout_report_id,
@@ -210,9 +235,18 @@ export function aggregateFarms(
     })
   })
 
-  // Сортируем поля внутри каждого хозяйства по имени
+  // Сортируем данные
   for (const farm of farmsMap.values()) {
-    farm.fields.sort((a, b) => a.field_name.localeCompare(b.field_name))
+    farm.templateGroups.sort((a, b) => a.template_group_name.localeCompare(b.template_group_name))
+    for (const tg of farm.templateGroups) {
+      tg.measurements.sort((a, b) => a.human_name.localeCompare(b.human_name))
+      for (const m of tg.measurements) {
+        m.crops.sort((a, b) => a.crop_name.localeCompare(b.crop_name))
+        for (const c of m.crops) {
+          c.fields.sort((a, b) => a.field_name.localeCompare(b.field_name))
+        }
+      }
+    }
   }
 
   return Array.from(farmsMap.values())

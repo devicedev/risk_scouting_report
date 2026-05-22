@@ -248,7 +248,7 @@ const CropGroupsList: React.FC<CropGroupsListProps> = ({
                                 </TooltipTrigger>
                                 <TooltipContent side="right" className="max-w-xs">
                                   <p className="font-medium">{getMeasurementName(measurementId)}</p>
-                                  <p className="text-xs text-muted-foreground">Диапазон: 0 - {maxThreshold}</p>
+                                  <p className="text-xs text-muted-foreground">{sortedZones.length} зон</p>
                                 </TooltipContent>
                               </Tooltip>
                             );

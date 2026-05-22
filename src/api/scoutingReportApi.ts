@@ -84,51 +84,10 @@ export async function getAllThresholds(): Promise<IndicatorThreshold[]> {
 }
 
 // Преобразуем наши данные с учетом ID
-// export function flattenIndicatorsWithIds(
-//   indicators: IndicatorsData, 
-//   existingRules: IndicatorThreshold[]
-// ): IndicatorThreshold[] {
-//   const flatList: IndicatorThreshold[] = [];
-  
-//   // Создаем Map для быстрого поиска существующих правил
-//   const ruleMap = new Map(
-//     existingRules.map(rule => [
-//       `${rule.template_group_crop_group_measurement_id}_${rule.threshold_value}`,
-//       rule
-//     ])
-//   );
-
-//   Object.entries(indicators).forEach(([templateId, templateData]) => {
-//     Object.entries(templateData).forEach(([cropId, cropData]) => {
-//       Object.entries(cropData).forEach(([measurementId, zones]) => {
-//         // Здесь нужно получить template_group_crop_group_measurement_id
-//         // для данной комбинации
-//         const tgcgMeasurementId = 0; // TODO: получить реальный ID
-        
-//         zones.forEach((zone) => {
-//           const key = `${tgcgMeasurementId}_${zone.threshold_value}`;
-//           const existingRule = ruleMap.get(key);
-          
-//           flatList.push({
-//             id: existingRule?.id,
-//             template_group_crop_group_measurement_id: tgcgMeasurementId,
-//             scout_report_template_id: Number(templateId),
-//             crop_id: Number(cropId),
-//             scout_report_measurement_type_id: Number(measurementId),
-//             threshold_value: zone.threshold_value,
-//             indicator_zone: zone.zone
-//           });
-//         });
-//       });
-//     });
-//   });
-
-//   return flatList;
-// }
 
 export function flattenIndicatorsWithIds(
   indicators: IndicatorsData, 
-  existingRules: IndicatorThreshold[],
+  _existingRules: IndicatorThreshold[],
   templateGroupCropGroups: TemplateGroupCropGroup[], // Добавить
   templateGroupCropGroupMeasurements: TemplateGroupCropGroupMeasurement[] // Добавить
 ): IndicatorThreshold[] {
@@ -148,7 +107,6 @@ export function flattenIndicatorsWithIds(
   );
   
   const flatList: IndicatorThreshold[] = [];
-  const ruleByIdMap = new Map(existingRules.map(rule => [rule.id, rule]));
 
   Object.entries(indicators).forEach(([templateId, templateData]) => {
     Object.entries(templateData).forEach(([cropId, cropData]) => {
@@ -392,7 +350,7 @@ export function findChanges(
 
 // Сохраняем все изменения
 export async function saveAllThresholds(
-  oldData: IndicatorsData, 
+  _oldData: IndicatorsData, 
   newData: IndicatorsData,
   existingRules: IndicatorThreshold[],
   templateGroupCropGroups: TemplateGroupCropGroup[], // Добавить

@@ -60,7 +60,7 @@ export const Header: FC<HeaderProps> = ({
   const goHub = () => window.location.assign('/hub');
 
   return (
-    <header className="flex justify-between items-center p-4 bg-stone-200 dark:bg-stone-900 sticky top-0 z-10">
+    <header className="flex justify-between items-center p-4 bg-stone-200 dark:bg-stone-900">
       <div className="flex items-center gap-4">
         <Button
           onClick={goHub}

@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Plus, AlertCircle, XCircle, CheckCircle2 } from 'lucide-react';
+import { Search, Plus, AlertCircle, XCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface AddItemDialogProps {
@@ -27,19 +27,28 @@ interface AddItemDialogProps {
   getId: (item: any) => number;
   getName: (item: any) => string;
   
-  // Дополнительные данные для валидации групп культур
+  // Валидация для групп культур (при добавлении группы в шаблон)
   validateCropGroup?: (item: any) => {
     isValid: boolean;
     conflictCrops?: Array<{ id: number; name: string; groupName: string }>;
     errorMessage?: string;
   };
+  
+  // Валидация для культур (при добавлении культуры в группу культур)
+  validateCrop?: (item: any) => {
+    isValid: boolean;
+    conflictMessage?: string;
+    existingGroups?: Array<{ id: number; name: string }>;
+    conflictingGroups?: Array<{ id: number; name: string; templateGroupName: string }>;
+  };
+  
   // Данные о культурах и их группах
   allCropGroups?: any[];
   allCrops?: any[];
   existingCropGroupIds?: number[];
   getCropsInGroup?: (groupId: number) => Array<{ id: number; name: string }>;
   
-  // НОВЫЕ ПРОПСЫ ДЛЯ ШАБЛОНОВ
+  // Валидация для шаблонов
   validateTemplate?: (item: any) => {
     status: 'available' | 'in_current_group' | 'in_other_group';
     message?: string;
@@ -61,8 +70,9 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
   getId,
   getName,
   validateCropGroup,
+  validateCrop,
   getCropsInGroup,
-  validateTemplate, // Новый пропс для валидации шаблонов
+  validateTemplate,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
@@ -78,10 +88,16 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
     return isNotExisting && matchesSearch;
   });
 
-  // Получаем конфликтующие культуры для каждой группы
-  const getItemConflicts = (item: any) => {
+  // Получаем конфликтующие культуры для группы культур
+  const getCropGroupConflicts = (item: any) => {
     if (!validateCropGroup) return null;
     return validateCropGroup(item);
+  };
+
+  // Получаем информацию о конфликте для культуры
+  const getCropValidation = (item: any) => {
+    if (!validateCrop) return null;
+    return validateCrop(item);
   };
 
   // Получаем статус шаблона
@@ -91,6 +107,14 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
   };
 
   const handleAddItem = (item: any) => {
+    const cropValidation = getCropValidation(item);
+    
+    // Проверяем валидацию для культуры
+    if (cropValidation && !cropValidation.isValid) {
+      setValidationError(cropValidation.conflictMessage || 'Эта культура не может быть добавлена из-за конфликтов');
+      return;
+    }
+    
     setSelectedItem(null);
     setValidationError(null);
     onAddItem(item);
@@ -101,6 +125,7 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
     onOpenChange(false);
     setSearchQuery('');
     setSelectedItem(null);
+    setValidationError(null);
   };
 
   const handleSelectItem = (item: any) => {
@@ -113,37 +138,62 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
     }
   };
 
-  // Определяем, показывать ли кнопку "Добавить"
-  const shouldShowAddButton = (item: any) => {
-    const cropValidation = getItemConflicts(item);
+  // Определяем, можно ли добавить элемент
+  const canAddItem = (item: any): boolean => {
+    const cropGroupConflicts = getCropGroupConflicts(item);
+    const cropValidation = getCropValidation(item);
     const templateStatus = getTemplateStatus(item);
     
-    // Для культур: показываем, если группа валидна
+    // Для групп культур
+    if (cropGroupConflicts) {
+      return cropGroupConflicts.isValid;
+    }
+    
+    // Для культур
     if (cropValidation) {
       return cropValidation.isValid;
     }
     
-    // Для шаблонов: показываем, только если шаблон доступен (не в текущей и не в других группах)
+    // Для шаблонов
     if (templateStatus) {
       return templateStatus.status === 'available';
     }
     
-    // По умолчанию показываем
     return true;
+  };
+
+  // Получаем сообщение о статусе для шаблонов
+  const getTemplateStatusMessage = (item: any) => {
+    const templateStatus = getTemplateStatus(item);
+    if (templateStatus && templateStatus.status !== 'available') {
+      return {
+        message: templateStatus.message || (templateStatus.status === 'in_current_group' ? 'Уже в этой группе' : `Уже в группе "${templateStatus.groupName}"`),
+        className: templateStatus.status === 'in_current_group' 
+          ? 'text-green-600 dark:text-green-400' 
+          : 'text-amber-600 dark:text-amber-400'
+      };
+    }
+    return null;
   };
 
   // Получаем стили для элемента
   const getItemStyles = (item: any, isSelected: boolean) => {
-    const cropValidation = getItemConflicts(item);
+    const cropGroupConflicts = getCropGroupConflicts(item);
+    const cropValidation = getCropValidation(item);
     const templateStatus = getTemplateStatus(item);
     
     if (isSelected) {
       return 'border-primary ring-2 ring-primary/20';
     }
     
+    // Для групп культур с конфликтами
+    if (cropGroupConflicts && !cropGroupConflicts.isValid) {
+      return 'border-red-300 bg-red-50 dark:bg-red-950/20';
+    }
+    
     // Для культур с конфликтами
     if (cropValidation && !cropValidation.isValid) {
-      return 'border-red-300 bg-red-50 dark:bg-red-950/20';
+      return 'border-amber-300 bg-amber-50 dark:bg-amber-950/20';
     }
     
     // Для шаблонов
@@ -161,18 +211,28 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
     return 'border-border hover:border-primary/50';
   };
 
-  // Получаем сообщение о статусе
-  const getStatusMessage = (item: any) => {
-    const templateStatus = getTemplateStatus(item);
-    if (templateStatus && templateStatus.status !== 'available') {
+  // Получаем иконку и текст статуса для культуры
+  const getCropStatusDisplay = (item: any) => {
+    const validation = getCropValidation(item);
+    if (!validation) return null;
+    
+    if (validation.isValid) {
       return {
-        message: templateStatus.message || (templateStatus.status === 'in_current_group' ? 'Уже в этой группе' : `Уже в группе "${templateStatus.groupName}"`),
-        className: templateStatus.status === 'in_current_group' 
-          ? 'text-green-600 dark:text-green-400' 
-          : 'text-amber-600 dark:text-amber-400'
+        icon: <CheckCircle2 className="h-3 w-3 text-green-500" />,
+        text: 'Можно добавить',
+        className: 'text-green-600 dark:text-green-400'
+      };
+    } else {
+      return {
+        icon: <AlertTriangle className="h-3 w-3 text-amber-500" />,
+        text: validation.conflictingGroups?.length 
+          ? `Конфликт с ${validation.conflictingGroups.length} группой(ами)`
+          : validation.existingGroups?.length 
+            ? `Уже в ${validation.existingGroups.length} группе(ах)`
+            : 'Конфликт',
+        className: 'text-amber-600 dark:text-amber-400'
       };
     }
-    return null;
   };
 
   return (
@@ -204,12 +264,11 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
         <ScrollArea className="flex-1 overflow-auto">
           <div className="space-y-2 pr-4">
             {filteredItems.map((item) => {
-              const validation = getItemConflicts(item);
-              const isValid = !validation || validation.isValid;
-              const conflictCrops = validation?.conflictCrops || [];
-              const templateStatus = getTemplateStatus(item);
-              const statusMessage = getStatusMessage(item);
-              const showAddButton = shouldShowAddButton(item);
+              const cropGroupConflicts = getCropGroupConflicts(item);
+              const cropValidation = getCropValidation(item);
+              const cropStatusDisplay = getCropStatusDisplay(item);
+              const templateStatusMessage = getTemplateStatusMessage(item);
+              const canAdd = canAddItem(item);
               
               return (
                 <div
@@ -226,24 +285,44 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
                         <div className="text-sm text-muted-foreground">
                           ID: {getId(item)}
                         </div>
-                        {statusMessage && (
-                          <div className={`text-xs mt-1 flex items-center gap-1 ${statusMessage.className}`}>
+                        
+                        {/* Статус для культур */}
+                        {cropStatusDisplay && (
+                          <div className={`text-xs mt-1 flex items-center gap-1 ${cropStatusDisplay.className}`}>
+                            {cropStatusDisplay.icon}
+                            <span>{cropStatusDisplay.text}</span>
+                            {cropValidation?.existingGroups && cropValidation.existingGroups.length > 0 && (
+                              <span className="text-muted-foreground">
+                                ({cropValidation.existingGroups.map(g => g.name).join(', ')})
+                              </span>
+                            )}
+                            {cropValidation?.conflictingGroups && cropValidation.conflictingGroups.length > 0 && (
+                              <span className="text-muted-foreground">
+                                (связаны с группами шаблонов)
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Статус для шаблонов */}
+                        {templateStatusMessage && (
+                          <div className={`text-xs mt-1 flex items-center gap-1 ${templateStatusMessage.className}`}>
                             <CheckCircle2 className="h-3 w-3" />
-                            <span>{statusMessage.message}</span>
+                            <span>{templateStatusMessage.message}</span>
+                          </div>
+                        )}
+                        
+                        {/* Статус для групп культур */}
+                        {cropGroupConflicts && !cropGroupConflicts.isValid && (
+                          <div className="text-xs mt-1 flex items-center gap-1 text-red-500">
+                            <XCircle className="h-3 w-3" />
+                            <span>Конфликт: {cropGroupConflicts.errorMessage || 'есть пересекающиеся культуры'}</span>
                           </div>
                         )}
                       </div>
                       
-                      {/* Показываем иконку конфликта для культур */}
-                      {!isValid && (
-                        <div className="flex items-center gap-1 text-red-500">
-                          <XCircle className="h-4 w-4" />
-                          <span className="text-xs">Конфликт культур</span>
-                        </div>
-                      )}
-                      
-                      {/* Кнопка "Добавить" показывается только если элемент доступен для добавления */}
-                      {showAddButton && (
+                      {/* Кнопка "Добавить" показывается только если элемент можно добавить */}
+                      {canAdd && (
                         <Button
                           size="sm"
                           onClick={(e) => {
@@ -256,25 +335,39 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
                         </Button>
                       )}
                       
-                      {/* Для уже добавленных элементов показываем иконку */}
-                      {!showAddButton && templateStatus && templateStatus.status !== 'available' && (
-                        <div className={`flex items-center gap-1 text-sm ${templateStatus.status === 'in_current_group' ? 'text-green-600' : 'text-amber-600'}`}>
-                          <CheckCircle2 className="h-4 w-4" />
-                          <span>Отслеживается</span>
+                      {/* Для уже добавленных/заблокированных элементов показываем иконку */}
+                      {!canAdd && (
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          {cropValidation?.conflictingGroups?.length ? (
+                            <>
+                              <AlertTriangle className="h-4 w-4 text-amber-500" />
+                              <span className="text-sm">Конфликт</span>
+                            </>
+                          ) : cropValidation?.existingGroups?.length ? (
+                            <>
+                              <AlertTriangle className="h-4 w-4 text-amber-500" />
+                              <span className="text-sm">Уже в группе</span>
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="h-4 w-4 text-red-500" />
+                              <span className="text-sm">Недоступно</span>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>
                   </div>
                   
-                  {/* Показываем детали конфликта для культур при выборе */}
-                  {selectedItem === item && showConflicts && !isValid && conflictCrops.length > 0 && (
+                  {/* Показываем детали конфликта для групп культур при выборе */}
+                  {selectedItem === item && showConflicts && cropGroupConflicts && !cropGroupConflicts.isValid && cropGroupConflicts.conflictCrops && (
                     <div className="border-t p-3 space-y-2 bg-red-50/50 dark:bg-red-950/10">
                       <div className="text-sm font-medium text-red-600 dark:text-red-400 flex items-center gap-2">
                         <AlertCircle className="h-4 w-4" />
                         Конфликтующие культуры:
                       </div>
                       <div className="space-y-1">
-                        {conflictCrops.map((crop) => (
+                        {cropGroupConflicts.conflictCrops.map((crop) => (
                           <div key={crop.id} className="text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-red-400"></span>
                             <span>{crop.name}</span>
@@ -290,8 +383,56 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
                     </div>
                   )}
                   
-                  {/* Показываем культуры в группе при выборе (если нет конфликтов) */}
-                  {selectedItem === item && showConflicts && isValid && getCropsInGroup && (
+                  {/* Показываем детали конфликта для культуры (конфликт с группами, связанными с группой шаблонов) */}
+                  {selectedItem === item && showConflicts && cropValidation && !cropValidation.isValid && cropValidation.conflictingGroups && cropValidation.conflictingGroups.length > 0 && (
+                    <div className="border-t p-3 space-y-2 bg-amber-50/50 dark:bg-amber-950/10">
+                      <div className="text-sm font-medium text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        Конфликт с существующими группами культур:
+                      </div>
+                      <div className="space-y-1">
+                        {cropValidation.conflictingGroups.map((group) => (
+                          <div key={group.id} className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                            <span>Группа культур "{group.name}"</span>
+                            <span className="text-xs text-muted-foreground">
+                              (связана с группой шаблонов "{group.templateGroupName}")
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        Эта культура уже присутствует в группах культур, связанных с той же группой шаблонов.
+                        Для добавления необходимо сначала удалить культуру из конфликтующих групп.
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Показываем существующие группы для культуры (обычный конфликт) */}
+                  {selectedItem === item && showConflicts && cropValidation && !cropValidation.isValid && cropValidation.existingGroups && cropValidation.existingGroups.length > 0 && !cropValidation.conflictingGroups?.length && (
+                    <div className="border-t p-3 space-y-2 bg-amber-50/50 dark:bg-amber-950/10">
+                      <div className="text-sm font-medium text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        Культура уже в группах:
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {cropValidation.existingGroups.map((group) => (
+                          <span
+                            key={group.id}
+                            className="inline-flex items-center px-2 py-1 rounded-md text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
+                          >
+                            {group.name}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        Культура не может быть добавлена, так как уже присутствует в других группах
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Показываем культуры в группе при выборе (для групп культур) */}
+                  {selectedItem === item && showConflicts && cropGroupConflicts?.isValid && getCropsInGroup && (
                     <div className="border-t p-3 space-y-2">
                       <div className="text-sm font-medium">Культуры в группе:</div>
                       <div className="flex flex-wrap gap-2">

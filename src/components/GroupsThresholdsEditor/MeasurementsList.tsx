@@ -185,7 +185,7 @@ const MeasurementsList: React.FC<MeasurementsListProps> = ({
                             <Tooltip>
                               <TooltipTrigger>
                                 <span className="text-xs text-muted-foreground cursor-help">
-                                  ⚡ до {maxThreshold}
+                                  ⚡
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent>
@@ -225,8 +225,9 @@ const MeasurementsList: React.FC<MeasurementsListProps> = ({
                                     <TooltipContent>
                                       <p className="font-medium">{getZoneText(zone.zone)} зона</p>
                                       <p className="text-xs">
-                                        от {currentValue} до {nextValue}
-                                        {idx === sortedZones.length - 1 && ' и выше'}
+                                        {idx !== sortedZones.length - 1 
+                                          ? `от ${currentValue} до ${nextValue}`
+                                          : `от ${currentValue} и выше`}
                                       </p>
                                     </TooltipContent>
                                   </Tooltip>

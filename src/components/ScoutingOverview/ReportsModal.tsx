@@ -6,7 +6,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { ExternalLink, Calendar, Ruler, TrendingUp } from "lucide-react"
+import { ExternalLink, Calendar, Ruler, TrendingUp, Sprout } from "lucide-react"
 import type { ReportMeasurement } from "../../types/scoutingAggregated"
 
 interface ReportsModalProps {
@@ -125,8 +125,21 @@ const ReportsModal: React.FC<ReportsModalProps> = ({
                         </span>
                       </div>
                       
+                      {/* Название культуры */}
+                      {report.crop_name && (
+                        <div className="mb-3">
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                            <Sprout className="h-3 w-3" />
+                            <span>Культура</span>
+                          </div>
+                          <p className="text-sm font-medium truncate" title={report.crop_name}>
+                            {report.crop_name}
+                          </p>
+                        </div>
+                      )}
+                      
                       {/* Основная информация */}
-                      <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t">
+                      <div className="grid grid-cols-2 gap-3 mt-2 pt-3 border-t">
                         <div>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
                             <Ruler className="h-3 w-3" />

@@ -31,6 +31,7 @@ const ScoutingOverview: React.FC<Props> = ({ templates }) => {
   const [selectedRisk, setSelectedRisk] = useState<RiskType | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
+  // Пересчитываем статистику из структуры: template → measurements → crops → farms → fields → reports
   const stats = useMemo(() => {
     const result: Record<string, number> = {
       green: 0,
@@ -53,16 +54,21 @@ const ScoutingOverview: React.FC<Props> = ({ templates }) => {
     return stats.total ? Math.round((value / stats.total) * 100) : 0
   }
 
+  // Собираем отчеты из структуры: template → measurements → crops → farms → fields → reports
   const getFilteredReports = () => {
     const allReports: (ReportMeasurement & { measurement_type_name?: string })[] = []
     
     templates.forEach((template) => {
-      template.crops.forEach((crop) => {
-        crop.measurements.forEach((measurement) => {
-          measurement.reports.forEach((report) => {
-            allReports.push({
-              ...report,
-              measurement_type_name: measurement.human_name
+      template.measurements?.forEach((measurement) => {
+        measurement.crops?.forEach((crop) => {
+          crop.farms?.forEach((farm) => {
+            farm.fields?.forEach((field) => {
+              field.reports?.forEach((report) => {
+                allReports.push({
+                  ...report,
+                  measurement_type_name: measurement.human_name
+                })
+              })
             })
           })
         })
@@ -87,7 +93,6 @@ const ScoutingOverview: React.FC<Props> = ({ templates }) => {
 
   const filteredReports = getFilteredReports()
   
-  // Безопасно формируем заголовок и описание
   const modalTitle = selectedRisk === "total" 
     ? "Все отчеты" 
     : selectedRisk 

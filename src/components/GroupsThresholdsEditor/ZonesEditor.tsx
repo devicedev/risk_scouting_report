@@ -499,8 +499,9 @@ const ZonesEditor: React.FC<ZonesEditorProps> = ({
                       <TooltipContent>
                         <p className="font-medium">{getZoneText(zone.zone)} зона</p>
                         <p className="text-xs">
-                          {index != localZones.length - 1 && `от ${startValue} до ${endValue}`}
-                          {index === localZones.length - 1 && `от ${startValue} и выше`}
+                          {index !== localZones.length - 1 
+                            ? `от ${startValue} до ${endValue}`
+                            : `от ${startValue} и выше`}
                         </p>
                       </TooltipContent>
                     </Tooltip>
@@ -510,10 +511,6 @@ const ZonesEditor: React.FC<ZonesEditorProps> = ({
             </div>
 
             <div className="flex justify-between mt-4 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <span className="font-medium">Диапазон:</span>
-                <span>0 - {maxThreshold}</span>
-              </div>
               <div className="flex items-center gap-1">
                 <span className="font-medium">Всего зон:</span>
                 <span>{localZones.length}</span>
