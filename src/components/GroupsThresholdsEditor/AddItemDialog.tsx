@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,28 +12,28 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, Plus } from 'lucide-react';
 
-export interface DisplayItem {
+export interface DisplayItem<T> {
   id: number;
   name: string;
-  originalItem: any; // Сохраняем оригинальный элемент
+  originalItem: T;
 }
 
-interface AddItemDialogProps {
+interface AddItemDialogProps<T> {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  items: any[]; // Оригинальные элементы из справочника
+  items: T[];
   existingItemIds: Set<string>;
-  onAddItem: (item: any) => void;
+  onAddItem: (item: T) => void;
   title: string;
   description: string;
   searchPlaceholder: string;
   noItemsMessage: string;
   noResultsMessage: string;
-  getId: (item: any) => number;
-  getName: (item: any) => string;
+  getId: (item: T) => number;
+  getName: (item: T) => string;
 }
 
-const AddItemDialog: React.FC<AddItemDialogProps> = ({
+const AddItemDialog = <T,>({
   open,
   onOpenChange,
   items,
@@ -46,7 +46,7 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
   noResultsMessage,
   getId,
   getName
-}) => {
+}: AddItemDialogProps<T>) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredItems = items.filter(item => {
@@ -58,7 +58,7 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
     return isNotExisting && matchesSearch;
   });
 
-  const handleAddItem = (item: any) => {
+  const handleAddItem = (item: T) => {
     onAddItem(item);
     onOpenChange(false);
     setSearchQuery('');

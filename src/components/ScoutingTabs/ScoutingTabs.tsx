@@ -1,4 +1,4 @@
-import React, { useMemo } from "react"
+import React, { lazy, Suspense, useMemo } from "react"
 import { motion } from "framer-motion"
 import ScoutingTemplateTableNested from "../Table/ScoutingTemplateTableNested"
 import ScoutingFarmTable from "../Table/ScoutingFarmTable"
@@ -7,8 +7,11 @@ import DateRangeSlider from "../DateRangeSlider/DateRangeSlider"
 import type { TemplateData, MeasurementTypeData, CropData, FieldData, FarmData as TemplateFarmData } from "../../types/scoutingAggregated"
 import type { FarmData, FarmTemplateGroupData, FarmCropData, FarmMeasurementTypeData, FarmFieldData } from "../../types/scoutingFarmAggregated"
 import type { TemplateGroupName, TemplateGroup, CropGroup, CropGroupName } from "../../types/groups"
-import ScoutingRiskChart from "../ScoutingRiskChart/ScoutingRiskChart"
 import type { TabType } from "@/types/handbooks"
+
+const ScoutingRiskChart = lazy(
+  () => import("../ScoutingRiskChart/ScoutingRiskChart")
+)
 
 interface ScoutingTabsProps {
   templates: TemplateData[]
@@ -392,7 +395,15 @@ const ScoutingTabs: React.FC<ScoutingTabsProps> = ({
         )}
 
         {activeTab === "stats" && (
-          <ScoutingRiskChart templates={filteredTemplates} />
+          <Suspense
+            fallback={
+              <div className="flex min-h-100 items-center justify-center text-muted-foreground">
+                Загрузка графика...
+              </div>
+            }
+          >
+            <ScoutingRiskChart templates={filteredTemplates} />
+          </Suspense>
         )}
       </div>
     </div>

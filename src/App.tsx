@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react"
+import { lazy, Suspense, useEffect, useState, useCallback, useMemo } from "react"
 import { useQuery } from '@tanstack/react-query'
 import { getScoutReports, getIndicators, getAllThresholds, type IndicatorThreshold, deleteTemplateThresholds } from "./api/scoutingReportApi"
 import { aggregateTemplates } from "./services/aggregateTemplates"
@@ -11,11 +11,8 @@ import { Header } from "./components/Header/Header";
 import { useSearchParams } from "react-router-dom";
 
 import { getHandbooks } from "./api/handbooksApi"
-import GroupsThresholdsEditor from "./components/GroupsThresholdsEditor/GroupsThresholdsEditor"
 import type { GroupsIndicatorsData, NavigationState } from "./components/GroupsThresholdsEditor/types"
 import type { Crop, ScoutReportTemplate, ScoutReportMeasurementType } from "./types/handbooks"
-import GroupsManager from "./components/GroupsManager/GroupsManager";
-import ScoutingTabs from "./components/ScoutingTabs/ScoutingTabs"
 import type { TabType } from "./types/handbooks"
 
 import type { 
@@ -43,6 +40,15 @@ import {
   saveAllThresholds
 } from "./api/scoutingReportApi";
 
+const GroupsThresholdsEditor = lazy(
+  () => import("./components/GroupsThresholdsEditor/GroupsThresholdsEditor")
+)
+const GroupsManager = lazy(
+  () => import("./components/GroupsManager/GroupsManager")
+)
+const ScoutingTabs = lazy(
+  () => import("./components/ScoutingTabs/ScoutingTabs")
+)
 
 function App() {
   // UI состояния
@@ -216,7 +222,11 @@ function App() {
   const handleToggleGroup = useCallback((id: number) => {
     setExpandedGroups(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
       return next
     })
   }, [])
@@ -224,7 +234,11 @@ function App() {
   const handleToggleMeasurement = useCallback((id: number) => {
     setExpandedMeasurements(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
       return next
     })
   }, [])
@@ -232,7 +246,11 @@ function App() {
   const handleToggleCrop = useCallback((id: number) => {
     setExpandedCrops(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
       return next
     })
   }, [])
@@ -240,7 +258,11 @@ function App() {
   const handleToggleFarm = useCallback((id: string) => {
     setExpandedFarms(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
       return next
     })
   }, [])
@@ -248,7 +270,11 @@ function App() {
   const handleToggleField = useCallback((id: number) => {
     setExpandedFields(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
       return next
     })
   }, [])
@@ -257,7 +283,11 @@ function App() {
   const handleToggleFarmFarm = useCallback((id: string) => {
     setExpandedFarmsFarm(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
       return next
     })
   }, [])
@@ -265,7 +295,11 @@ function App() {
   const handleToggleFarmTemplateGroup = useCallback((id: number) => {
     setExpandedFarmTemplateGroups(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
       return next
     })
   }, [])
@@ -273,7 +307,11 @@ function App() {
   const handleToggleFarmMeasurement = useCallback((id: number) => {
     setExpandedFarmMeasurements(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
       return next
     })
   }, [])
@@ -281,7 +319,11 @@ function App() {
   const handleToggleFarmCrop = useCallback((id: number) => {
     setExpandedFarmCrops(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
       return next
     })
   }, [])
@@ -289,7 +331,11 @@ function App() {
   const handleToggleFarmField = useCallback((id: number) => {
     setExpandedFarmFields(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
       return next
     })
   }, [])
@@ -476,6 +522,16 @@ function App() {
     }
   };
 
+  const loadingContent = (
+    <div className="p-4 max-w-7xl mx-auto mt-8">
+      <div className="flex flex-col items-center justify-center gap-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-400" />
+        <div className="text-lg text-gray-700 dark:text-gray-300">Загрузка данных...</div>
+        <div className="text-sm text-gray-500 dark:text-gray-400">Пожалуйста, подождите</div>
+      </div>
+    </div>
+  )
+
   // Показываем лоадер пока загружаются И статика, И reports
   if (isLoading) {
     return (
@@ -485,13 +541,7 @@ function App() {
           onViewChange={handleViewChange}
           currentView={currentView}
         />
-        <div className="p-4 max-w-7xl mx-auto mt-8">
-          <div className="flex flex-col items-center justify-center gap-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-400" />
-            <div className="text-lg text-gray-700 dark:text-gray-300">Загрузка данных...</div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">Пожалуйста, подождите</div>
-          </div>
-        </div>
+        {loadingContent}
       </ThemeProvider>
     )
   }
@@ -504,6 +554,7 @@ function App() {
         currentView={currentView}
       />
       <div className="p-4 max-w-7xl mx-auto mt-8">
+        <Suspense fallback={loadingContent}>
         {currentView === 'table' && (
           <ScoutingTabs
             templates={templates}
@@ -582,6 +633,7 @@ function App() {
             onClose={() => setCurrentView('table')}
           />
         )}
+        </Suspense>
       </div>
     </ThemeProvider>
   )

@@ -67,10 +67,10 @@ export function getDetailedItems(
         const zones = cropIndicators[measurementTypeId]
         if (!zones) return
 
-        let currentZone: 'green' | 'orange' | 'red' = zones[0].zone as any
+        let currentZone: 'green' | 'orange' | 'red' = zones[0].zone
         for (const z of zones) {
           if (measurement.measurement_value >= z.threshold_value) {
-            currentZone = z.zone as any
+            currentZone = z.zone
           }
         }
 

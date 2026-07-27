@@ -116,7 +116,7 @@ const GroupsManager: React.FC<GroupsManagerProps> = ({
 
 // Валидация для культуры при добавлении в группу культур
 // Проверяет, не будет ли конфликта с уже существующими связями групп шаблонов
-const validateCropForGroup = useCallback((crop: any) => {
+const validateCropForGroup = useCallback((crop: Crop) => {
   if (!selectedGroupForAdd) {
     return { isValid: true, existingGroups: [] };
   }
@@ -304,7 +304,7 @@ const validateCropForGroup = useCallback((crop: any) => {
   // ======================
   // Template Group Items
   // ======================
-  const handleAddTemplateToGroup = async (template: any) => {
+  const handleAddTemplateToGroup = async (template: ScoutReportTemplate) => {
     if (!selectedGroupForAdd) return;
 
     try {
@@ -343,7 +343,7 @@ const validateCropForGroup = useCallback((crop: any) => {
   // ======================
   // Crop Group Items
   // ======================
-  const handleAddCropToGroup = async (crop: any) => {
+  const handleAddCropToGroup = async (crop: Crop) => {
     if (!selectedGroupForAdd) return;
 
     try {
@@ -437,7 +437,7 @@ const validateCropForGroup = useCallback((crop: any) => {
   };
 
   // Валидация шаблона для диалога
-  const validateTemplateForGroup = (template: any) => {
+  const validateTemplateForGroup = (template: ScoutReportTemplate) => {
     const templateId = template.scout_report_template_id;
     
     const isInCurrentGroup = templateGroups.some(

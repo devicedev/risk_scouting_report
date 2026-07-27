@@ -6,12 +6,14 @@ import TemplateGroupsList from './TemplateGroupsList';
 import CropGroupsList from './CropGroupsList';
 import MeasurementsList from './MeasurementsList';
 import ZonesEditor from './ZonesEditor';
-import AddItemDialog from '../ThresholdsEditor/AddItemDialog';
+import AddItemDialog, { type AddItemDialogProps } from '../ThresholdsEditor/AddItemDialog';
 import type { ThresholdValue } from './types';
 import type { GroupsThresholdsEditorProps, NavigationState, DialogType } from './types';
 import type { ScoutReportMeasurementType } from '@/types/handbooks';
 import type { TemplateGroupName, CropGroupName } from '@/types/groups';
 import type { ThresholdValueWithId } from '@/api/scoutingReportApi';
+
+type DialogContentProps<T> = Omit<AddItemDialogProps<T>, 'open' | 'onOpenChange'>;
 
 const GroupsThresholdsEditor: React.FC<GroupsThresholdsEditorProps> = ({
   indicators,
@@ -568,6 +570,7 @@ const GroupsThresholdsEditor: React.FC<GroupsThresholdsEditorProps> = ({
          navigation.selectedCropGroupId && 
          navigation.selectedMeasurementId && (
           <ZonesEditor
+            key={`${navigation.selectedTemplateGroupId}:${navigation.selectedCropGroupId}:${navigation.selectedMeasurementId}`}
             zones={currentZones}
             measurementName={currentMeasurement?.human_name || ''}
             onChange={handleZonesChange}
@@ -578,11 +581,25 @@ const GroupsThresholdsEditor: React.FC<GroupsThresholdsEditorProps> = ({
         )}
       </CardContent>
 
-      {dialogProps && (
-        <AddItemDialog
+      {dialogProps && dialogType === 'templateGroup' && (
+        <AddItemDialog<TemplateGroupName>
           open={isDialogOpen}
           onOpenChange={setIsDialogOpen}
-          {...dialogProps}
+          {...(dialogProps as DialogContentProps<TemplateGroupName>)}
+        />
+      )}
+      {dialogProps && dialogType === 'cropGroup' && (
+        <AddItemDialog<CropGroupName>
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          {...(dialogProps as DialogContentProps<CropGroupName>)}
+        />
+      )}
+      {dialogProps && dialogType === 'measurement' && (
+        <AddItemDialog<ScoutReportMeasurementType>
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          {...(dialogProps as DialogContentProps<ScoutReportMeasurementType>)}
         />
       )}
     </Card>

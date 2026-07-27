@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { MeasurementsListProps } from './types';
+import type { MeasurementsListProps, ThresholdValue } from './types';
 
 const MeasurementsList: React.FC<MeasurementsListProps> = ({
   indicators,
@@ -64,7 +64,7 @@ const MeasurementsList: React.FC<MeasurementsListProps> = ({
   });
   console.log('Measurements with relations:', measurementsWithRelations);
 
-  const getZonesForMeasurement = (measurementId: string): any[] => {
+  const getZonesForMeasurement = (measurementId: string): ThresholdValue[] => {
     const zones = cropGroupData[measurementId] || [];
     console.log(`Zones for measurement ${measurementId}:`, zones);
     return zones;
@@ -97,9 +97,9 @@ const MeasurementsList: React.FC<MeasurementsListProps> = ({
   };
 
   // Вычисляем максимальное значение для адаптивной шкалы
-  const getMaxThreshold = (zones: any[]) => {
+  const getMaxThreshold = (zones: ThresholdValue[]) => {
     if (!zones || zones.length === 0) return 100;
-    const maxValue = Math.max(...zones.map((z: any) => z.threshold_value));
+    const maxValue = Math.max(...zones.map(z => z.threshold_value));
     const buffer = Math.ceil(maxValue * 0.2);
     const suggestedMax = maxValue + buffer;
     

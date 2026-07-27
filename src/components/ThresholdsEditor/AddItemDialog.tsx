@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,51 +12,59 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, Plus, AlertCircle, XCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import type { Crop } from '@/types/handbooks';
+import type { CropGroup } from '@/types/groups';
 
-interface AddItemDialogProps {
+interface CropGroupValidation {
+  isValid: boolean;
+  conflictCrops?: Array<{ id: number; name: string; groupName: string }>;
+  errorMessage?: string;
+}
+
+interface CropValidation {
+  isValid: boolean;
+  conflictMessage?: string;
+  existingGroups?: Array<{ id: number; name: string }>;
+  conflictingGroups?: Array<{ id: number; name: string; templateGroupName: string }>;
+}
+
+interface TemplateValidation {
+  status: 'available' | 'in_current_group' | 'in_other_group';
+  message?: string;
+  groupName?: string;
+}
+
+export interface AddItemDialogProps<T> {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  items: any[];
+  items: T[];
   existingItemIds: Set<string>;
-  onAddItem: (item: any) => void;
+  onAddItem: (item: T) => void;
   title: string;
   description: string;
   searchPlaceholder: string;
   noItemsMessage: string;
   noResultsMessage: string;
-  getId: (item: any) => number;
-  getName: (item: any) => string;
+  getId: (item: T) => number;
+  getName: (item: T) => string;
   
   // Валидация для групп культур (при добавлении группы в шаблон)
-  validateCropGroup?: (item: any) => {
-    isValid: boolean;
-    conflictCrops?: Array<{ id: number; name: string; groupName: string }>;
-    errorMessage?: string;
-  };
+  validateCropGroup?: (item: T) => CropGroupValidation;
   
   // Валидация для культур (при добавлении культуры в группу культур)
-  validateCrop?: (item: any) => {
-    isValid: boolean;
-    conflictMessage?: string;
-    existingGroups?: Array<{ id: number; name: string }>;
-    conflictingGroups?: Array<{ id: number; name: string; templateGroupName: string }>;
-  };
+  validateCrop?: (item: T) => CropValidation;
   
   // Данные о культурах и их группах
-  allCropGroups?: any[];
-  allCrops?: any[];
+  allCropGroups?: CropGroup[];
+  allCrops?: Crop[];
   existingCropGroupIds?: number[];
   getCropsInGroup?: (groupId: number) => Array<{ id: number; name: string }>;
   
   // Валидация для шаблонов
-  validateTemplate?: (item: any) => {
-    status: 'available' | 'in_current_group' | 'in_other_group';
-    message?: string;
-    groupName?: string;
-  };
+  validateTemplate?: (item: T) => TemplateValidation;
 }
 
-const AddItemDialog: React.FC<AddItemDialogProps> = ({
+const AddItemDialog = <T,>({
   open,
   onOpenChange,
   items,
@@ -73,9 +81,9 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
   validateCrop,
   getCropsInGroup,
   validateTemplate,
-}) => {
+}: AddItemDialogProps<T>) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [selectedItem, setSelectedItem] = useState<T | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [showConflicts, setShowConflicts] = useState(false);
 
@@ -89,24 +97,24 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
   });
 
   // Получаем конфликтующие культуры для группы культур
-  const getCropGroupConflicts = (item: any) => {
+  const getCropGroupConflicts = (item: T) => {
     if (!validateCropGroup) return null;
     return validateCropGroup(item);
   };
 
   // Получаем информацию о конфликте для культуры
-  const getCropValidation = (item: any) => {
+  const getCropValidation = (item: T) => {
     if (!validateCrop) return null;
     return validateCrop(item);
   };
 
   // Получаем статус шаблона
-  const getTemplateStatus = (item: any) => {
+  const getTemplateStatus = (item: T) => {
     if (!validateTemplate) return null;
     return validateTemplate(item);
   };
 
-  const handleAddItem = (item: any) => {
+  const handleAddItem = (item: T) => {
     const cropValidation = getCropValidation(item);
     
     // Проверяем валидацию для культуры
@@ -128,7 +136,7 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
     setValidationError(null);
   };
 
-  const handleSelectItem = (item: any) => {
+  const handleSelectItem = (item: T) => {
     if (selectedItem === item) {
       setSelectedItem(null);
       setShowConflicts(false);
@@ -139,7 +147,7 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
   };
 
   // Определяем, можно ли добавить элемент
-  const canAddItem = (item: any): boolean => {
+  const canAddItem = (item: T): boolean => {
     const cropGroupConflicts = getCropGroupConflicts(item);
     const cropValidation = getCropValidation(item);
     const templateStatus = getTemplateStatus(item);
@@ -163,7 +171,7 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
   };
 
   // Получаем сообщение о статусе для шаблонов
-  const getTemplateStatusMessage = (item: any) => {
+  const getTemplateStatusMessage = (item: T) => {
     const templateStatus = getTemplateStatus(item);
     if (templateStatus && templateStatus.status !== 'available') {
       return {
@@ -177,7 +185,7 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
   };
 
   // Получаем стили для элемента
-  const getItemStyles = (item: any, isSelected: boolean) => {
+  const getItemStyles = (item: T, isSelected: boolean) => {
     const cropGroupConflicts = getCropGroupConflicts(item);
     const cropValidation = getCropValidation(item);
     const templateStatus = getTemplateStatus(item);
@@ -212,7 +220,7 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
   };
 
   // Получаем иконку и текст статуса для культуры
-  const getCropStatusDisplay = (item: any) => {
+  const getCropStatusDisplay = (item: T) => {
     const validation = getCropValidation(item);
     if (!validation) return null;
     

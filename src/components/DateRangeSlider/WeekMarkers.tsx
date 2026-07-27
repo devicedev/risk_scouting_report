@@ -27,6 +27,16 @@ export default function WeekMarkers({
   const dragStartRef = useRef<Date | null>(null);
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
 
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      isDragging.current = false;
+      dragStartRef.current = null;
+    };
+
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+  }, []);
+
   if (!selectedMonth || weeks.length === 0) return null;
 
   const monthStart = new Date(selectedMonth.getFullYear(), selectedMonth.getMonth(), 1);
@@ -88,16 +98,6 @@ export default function WeekMarkers({
       dragStartRef.current = null;
     }
   };
-
-  useEffect(() => {
-    const handleGlobalMouseUp = () => {
-      isDragging.current = false;
-      dragStartRef.current = null;
-    };
-
-    window.addEventListener('mouseup', handleGlobalMouseUp);
-    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
-  }, []);
 
   return (
     <div

@@ -9,6 +9,45 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import type { ZonesEditorProps, ThresholdValue } from './types';
 import type { ThresholdValueWithId } from '@/api/scoutingReportApi';
 
+const normalizeZones = (zones: ThresholdValue[]): ThresholdValueWithId[] => {
+  const sortedZones = [...zones].sort((a, b) => a.threshold_value - b.threshold_value);
+  if (sortedZones.length === 0) {
+    return [{ threshold_value: 0, zone: 'green' }];
+  }
+  if (!sortedZones.some(zone => zone.threshold_value === 0)) {
+    return [{ threshold_value: 0, zone: 'green' }, ...sortedZones];
+  }
+  return sortedZones;
+};
+
+const getValidationErrors = (zones: ThresholdValue[]): Map<number, string> => {
+  const errors = new Map<number, string>();
+  const valueMap = new Map<number, number[]>();
+
+  zones.forEach((zone, index) => {
+    const existing = valueMap.get(zone.threshold_value) || [];
+    valueMap.set(zone.threshold_value, [...existing, index]);
+  });
+
+  valueMap.forEach((indices, value) => {
+    if (indices.length > 1) {
+      indices.forEach(index => {
+        errors.set(index, `Значение ${value} уже используется`);
+      });
+    }
+  });
+
+  zones.forEach((zone, index) => {
+    if (index === 0 && zone.threshold_value !== 0) {
+      errors.set(index, 'Первая зона всегда должна быть 0');
+    } else if (index > 0 && zone.threshold_value < 0) {
+      errors.set(index, 'Значение не может быть отрицательным');
+    }
+  });
+
+  return errors;
+};
+
 const ZonesEditor: React.FC<ZonesEditorProps> = ({
   zones,
   measurementName,
@@ -17,13 +56,12 @@ const ZonesEditor: React.FC<ZonesEditorProps> = ({
   disabled = false,
   isSaving = false
 }) => {
-  const [localZones, setLocalZones] = useState<ThresholdValueWithId[]>(
-    [...(zones || [])].sort((a, b) => a.threshold_value - b.threshold_value)
+  const localZones = useMemo(() => normalizeZones(zones || []), [zones]);
+  const [validationErrors, setValidationErrors] = useState<Map<number, string>>(
+    () => getValidationErrors(localZones)
   );
-  
-  const [validationErrors, setValidationErrors] = useState<Map<number, string>>(new Map());
   const [lastSavedZones, setLastSavedZones] = useState<ThresholdValue[]>(
-    [...(zones || [])].sort((a, b) => a.threshold_value - b.threshold_value)
+    normalizeZones(zones || [])
   );
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   
@@ -49,24 +87,6 @@ const ZonesEditor: React.FC<ZonesEditorProps> = ({
   }, [localZones]);
 
   useEffect(() => {
-    let sortedZones = [...(zones || [])].sort((a, b) => a.threshold_value - b.threshold_value);
-    
-    const hasZeroZone = sortedZones.some(z => z.threshold_value === 0);
-    
-    if (!hasZeroZone && sortedZones.length > 0) {
-      sortedZones = [{ threshold_value: 0, zone: 'green' as const }, ...sortedZones];
-    } else if (sortedZones.length === 0) {
-      sortedZones = [{ threshold_value: 0, zone: 'green' as const }];
-    }
-    
-    setLocalZones(sortedZones);
-    setLastSavedZones(sortedZones);
-    validateZones(sortedZones);
-    setInputValues({});
-    setOriginalValueAtFocus({});
-  }, [zones]);
-
-  useEffect(() => {
     if (showSaveSuccess) {
       const timer = setTimeout(() => {
         setShowSaveSuccess(false);
@@ -75,43 +95,8 @@ const ZonesEditor: React.FC<ZonesEditorProps> = ({
     }
   }, [showSaveSuccess]);
 
-  const validateZones = (zonesToValidate: ThresholdValue[]) => {
-    const errors = new Map<number, string>();
-    const duplicates = new Set<number>();
-    
-    const valueMap = new Map<number, number[]>();
-    zonesToValidate.forEach((zone, index) => {
-      const existing = valueMap.get(zone.threshold_value) || [];
-      valueMap.set(zone.threshold_value, [...existing, index]);
-    });
-    
-    valueMap.forEach((indices, value) => {
-      if (indices.length > 1) {
-        indices.forEach(idx => {
-          duplicates.add(idx);
-          errors.set(idx, `Значение ${value} уже используется`);
-        });
-      }
-    });
-    
-    zonesToValidate.forEach((zone, index) => {
-      if (index === 0) {
-        if (zone.threshold_value !== 0) {
-          errors.set(index, 'Первая зона всегда должна быть 0');
-        }
-      } else {
-        if (zone.threshold_value < 0) {
-          errors.set(index, 'Значение не может быть отрицательным');
-        }
-      }
-    });
-    
-    setValidationErrors(errors);
-    return errors.size === 0;
-  };
-
   const saveIfNeeded = (newZones: ThresholdValueWithId[]) => {
-    const isValid = validateZones(newZones);
+    const isValid = getValidationErrors(newZones).size === 0;
     const hasChanges = JSON.stringify(newZones) !== JSON.stringify(lastSavedZones);
     
     if (isValid && hasChanges && onAutoSave && !disabled && !isSaving) {
@@ -136,7 +121,6 @@ const ZonesEditor: React.FC<ZonesEditorProps> = ({
     };
     const newZones = [...localZones, newZone].sort((a, b) => a.threshold_value - b.threshold_value);
     
-    setLocalZones(newZones);
     onChange(newZones);
     saveIfNeeded(newZones);
   };
@@ -175,7 +159,6 @@ const ZonesEditor: React.FC<ZonesEditorProps> = ({
       updatedZones[index] = { ...updatedZones[index], threshold_value: numValue };
       const sortedZones = [...updatedZones].sort((a, b) => a.threshold_value - b.threshold_value);
       
-      setLocalZones(sortedZones);
       onChange(sortedZones);
       saveIfNeeded(sortedZones);
       
@@ -261,7 +244,6 @@ const ZonesEditor: React.FC<ZonesEditorProps> = ({
       id: currentZone.id
     };
     
-    setLocalZones(updatedZones);
     onChange(updatedZones);
     saveIfNeeded(updatedZones);
   };
@@ -274,7 +256,6 @@ const ZonesEditor: React.FC<ZonesEditorProps> = ({
     }
     
     const updatedZones = localZones.filter((_, i) => i !== index);
-    setLocalZones(updatedZones);
     onChange(updatedZones);
     saveIfNeeded(updatedZones);
   };

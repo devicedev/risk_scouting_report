@@ -38,7 +38,7 @@ export function getWeeksInMonth(date: Date): {
   }[] = [];
   
   // Находим первый понедельник перед началом месяца или первый день месяца
-  let currentDate = new Date(monthStart);
+  const currentDate = new Date(monthStart);
   const firstDayOfWeek = currentDate.getDay();
   
   // Корректируем до понедельника (день недели 1 = понедельник)

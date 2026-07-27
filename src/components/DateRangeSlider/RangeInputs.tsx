@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import styles from "./DateRangeSlider.module.css";
 
 type Props = {
@@ -22,24 +21,15 @@ export default function RangeInputs({
   onMouseDown,
   onMouseUp,
 }: Props) {
-  const [localStart, setLocalStart] = useState(startValue);
-  const [localEnd, setLocalEnd] = useState(endValue);
-
-  // Синхронизация с пропсами извне
-  useEffect(() => setLocalStart(startValue), [startValue]);
-  useEffect(() => setLocalEnd(endValue), [endValue]);
-
   const handleStartChange = (value: number) => {
     // Не даем start стать больше end
-    const newStart = Math.min(value, localEnd);
-    setLocalStart(newStart);
+    const newStart = Math.min(value, endValue);
     onStartChange(newStart);
   };
 
   const handleEndChange = (value: number) => {
     // Не даем end стать меньше start
-    const newEnd = Math.max(value, localStart);
-    setLocalEnd(newEnd);
+    const newEnd = Math.max(value, startValue);
     onEndChange(newEnd);
   };
 
@@ -50,7 +40,7 @@ export default function RangeInputs({
         min={min}
         max={max}
         step={1}
-        value={localStart}
+        value={startValue}
         onChange={(e) => handleStartChange(Number(e.target.value))}
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}
@@ -61,7 +51,7 @@ export default function RangeInputs({
           left: 0,
           width: "100%",
           height: "12px",
-          zIndex: localStart > localEnd ? 5 : 4,
+          zIndex: startValue > endValue ? 5 : 4,
         }}
       />
 
@@ -70,7 +60,7 @@ export default function RangeInputs({
         min={min}
         max={max}
         step={1}
-        value={localEnd}
+        value={endValue}
         onChange={(e) => handleEndChange(Number(e.target.value))}
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}
@@ -81,7 +71,7 @@ export default function RangeInputs({
           left: 0,
           width: "100%",
           height: "12px",
-          zIndex: localEnd < localStart ? 5 : 4,
+          zIndex: endValue < startValue ? 5 : 4,
         }}
       />
     </>

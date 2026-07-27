@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Trash2 } from 'lucide-react';
-import type { CropGroupsListProps } from './types';
+import type { CropGroupsListProps, ThresholdValue } from './types';
 
 const CropGroupsList: React.FC<CropGroupsListProps> = ({
   indicators,
@@ -54,7 +54,7 @@ const CropGroupsList: React.FC<CropGroupsListProps> = ({
   };
 
   // Получаем зоны для измерения
-  const getZonesForMeasurement = (cropGroupId: number, measurementId: number): any[] => {
+  const getZonesForMeasurement = (cropGroupId: number, measurementId: number): ThresholdValue[] => {
     const cropGroupIdStr = cropGroupId.toString();
     const measurementIdStr = measurementId.toString();
     
@@ -127,7 +127,7 @@ const CropGroupsList: React.FC<CropGroupsListProps> = ({
     }
   };
 
-  const getMaxThreshold = (zones: any[]) => {
+  const getMaxThreshold = (zones: ThresholdValue[]) => {
     if (!zones || zones.length === 0) return 100;
     const maxValue = Math.max(...zones.map(z => z.threshold_value));
     return Math.ceil((maxValue + maxValue * 0.2) / 10) * 10;

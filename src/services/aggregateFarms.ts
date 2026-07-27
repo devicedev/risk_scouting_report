@@ -1,4 +1,4 @@
-import type { ScoutReportItem, IndicatorsResponse } from "../types/scoutingReport"
+import type { ScoutReportItem, IndicatorsResponse, IndicatorMeasurement } from "../types/scoutingReport"
 import type { FarmData } from "../types/scoutingFarmAggregated"
 import type { TemplateGroup, CropGroup, TemplateGroupCropGroup, TemplateGroupName } from "../types/groups"
 
@@ -13,7 +13,7 @@ export function aggregateFarms(
   
   const farmsMap = new Map<string, FarmData>()
 
-  const getNumericValue = (value: any): number | null => {
+  const getNumericValue = (value: unknown): number | null => {
     if (value === null || value === undefined) return null
     
     if (typeof value === 'string') {
@@ -79,7 +79,7 @@ export function aggregateFarms(
     // Ищем подходящую пару групп
     let matchedTemplateGroupId: number | null = null
     // let matchedCropGroupId: number | null = null
-    let cropGroupData: any = null
+    let cropGroupData: IndicatorMeasurement | null = null
 
     for (const tgId of templateGroupIds) {
       for (const cgId of cropGroupIds) {

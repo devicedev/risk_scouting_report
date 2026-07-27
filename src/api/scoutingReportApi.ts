@@ -29,6 +29,15 @@ export interface ThresholdValueWithId extends ThresholdValue {
   id?: number; // ID правила из БД
 }
 
+interface ThresholdApiZone extends ThresholdValueWithId {
+  template_group_crop_group_measurement_id: number;
+}
+
+type ThresholdsApiResponse = Record<
+  string,
+  Record<string, Record<string, ThresholdApiZone[]>>
+>;
+
 export async function getScoutReports(season: number): Promise<ScoutReportItem[]> {
   const res = await fetch(`/api/v1/risc_scouting_report?season=${season}`)
 
@@ -58,13 +67,13 @@ export async function getAllThresholds(): Promise<IndicatorThreshold[]> {
     throw new Error("Failed to load thresholds")
   }
   
-  const data = await res.json()
+  const data: ThresholdsApiResponse = await res.json()
   const flatList: IndicatorThreshold[] = []
   
-  Object.entries(data).forEach(([templateId, templateData]: [string, any]) => {
-    Object.entries(templateData).forEach(([cropId, cropData]: [string, any]) => {
-      Object.entries(cropData).forEach(([measurementId, zones]: [string, any]) => {
-        zones.forEach((zone: any) => {
+  Object.entries(data).forEach(([templateId, templateData]) => {
+    Object.entries(templateData).forEach(([cropId, cropData]) => {
+      Object.entries(cropData).forEach(([measurementId, zones]) => {
+        zones.forEach(zone => {
           flatList.push({
             id: zone.id,
             // !!! ВАЖНО: берем реальное значение из ответа, а не 0

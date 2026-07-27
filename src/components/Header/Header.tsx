@@ -1,7 +1,7 @@
 import type { FC } from "react";
 import { Button } from "../ui/button";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import SunIcon from "../LiveIcons/SunIcon/SunIcon";
 import MoonIcon from "../LiveIcons/MoonIcon/MoonIcon";
@@ -18,8 +18,7 @@ export const Header: FC<HeaderProps> = ({
   onViewChange, 
   currentView 
 }) => {
-  const { theme, setTheme, systemTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -37,17 +36,16 @@ export const Header: FC<HeaderProps> = ({
 
   useEffect(() => {
     if (!urlSeason) {
-      setSearchParams({ ...Object.fromEntries(searchParams), season: String(initialSeason) });
+      setSearchParams(previousParams => {
+        const nextParams = new URLSearchParams(previousParams);
+        nextParams.set("season", String(initialSeason));
+        return nextParams;
+      });
     }
-  }, []);
-
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
-
-  const currentTheme = theme === "system" ? systemTheme : theme;
+  }, [initialSeason, setSearchParams, urlSeason]);
 
   const toggleTheme = () => {
-    setTheme(currentTheme === "dark" ? "light" : "dark");
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
   };
 
   const season = Number(searchParams.get("season")) || initialSeason;
@@ -113,7 +111,7 @@ export const Header: FC<HeaderProps> = ({
           Группы
         </Button>
         <Button variant="outline" onClick={toggleTheme} className="cursor-pointer ml-2">
-          {currentTheme === 'dark' ? <MoonIcon /> : <SunIcon />}
+          {resolvedTheme === 'dark' ? <MoonIcon /> : <SunIcon />}
         </Button>
       </div>
     </header>

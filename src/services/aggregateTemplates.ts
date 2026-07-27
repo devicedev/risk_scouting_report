@@ -1,4 +1,4 @@
-import type { ScoutReportItem, IndicatorsResponse } from "../types/scoutingReport"
+import type { ScoutReportItem, IndicatorsResponse, IndicatorMeasurement } from "../types/scoutingReport"
 import type { TemplateData } from "../types/scoutingAggregated"
 import type { TemplateGroup, CropGroup, TemplateGroupCropGroup } from "../types/groups"
 
@@ -14,7 +14,7 @@ export function aggregateTemplates(
   const templatesMap: Record<number, TemplateData> = {}
 
   // Функция для безопасного получения числового значения
-  const getNumericValue = (value: any): number | null => {
+  const getNumericValue = (value: unknown): number | null => {
     if (value === null || value === undefined) return null
     
     if (typeof value === 'string') {
@@ -79,7 +79,7 @@ export function aggregateTemplates(
     }
 
     // Ищем подходящую пару групп
-    let cropGroupData: any = null
+    let cropGroupData: IndicatorMeasurement | null = null
 
     for (const tgId of templateGroupIds) {
       for (const cgId of cropGroupIds) {

@@ -1,5 +1,7 @@
 import React, { useMemo } from "react"
-import Chart from "react-apexcharts"
+import Chart from "react-apexcharts/core"
+import "apexcharts/area"
+import "apexcharts/features/legend"
 import type { TemplateData } from "../../types/scoutingAggregated"
 
 interface Props {

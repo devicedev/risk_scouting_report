@@ -20,6 +20,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, 'src'),
     },
+    dedupe: ['apexcharts'],
   },
   build: {
     assetsDir: 'assets',
