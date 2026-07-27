@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import SunIcon from "../LiveIcons/SunIcon/SunIcon";
 import MoonIcon from "../LiveIcons/MoonIcon/MoonIcon";
-import { FolderTree } from "lucide-react";
+import { FileSpreadsheet, FolderTree } from "lucide-react";
 
 interface HeaderProps {
   onSeasonChange: (year: number) => void;
@@ -57,6 +57,15 @@ export const Header: FC<HeaderProps> = ({
 
   const goHub = () => window.location.assign('/hub');
 
+  const downloadExcel = () => {
+    const exportUrl = new URL(
+      "/api/v1/risc_scouting_report/export.xlsx",
+      window.location.origin
+    );
+    exportUrl.searchParams.set("season", String(season));
+    window.location.assign(exportUrl.toString());
+  };
+
   return (
     <header className="flex justify-between items-center p-4 bg-stone-200 dark:bg-stone-900">
       <div className="flex items-center gap-4">
@@ -94,6 +103,15 @@ export const Header: FC<HeaderProps> = ({
           onClick={() => onViewChange('table')}
         >
           Таблица
+        </Button>
+        <Button
+          variant="outline"
+          className="cursor-pointer flex items-center gap-2"
+          onClick={downloadExcel}
+          title="Скачать отчет в Excel"
+        >
+          <FileSpreadsheet className="h-4 w-4" />
+          Excel
         </Button>
         <Button 
           variant="outline" 
